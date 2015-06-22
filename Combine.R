@@ -1,6 +1,7 @@
 #Name: Jimson Mathew 
 # File Name: Combine.R
 # Date: 6/18/2015
+# Update: 6/22/2015 Added the file.path file and made appropriate changes.
 # Summary: This program takes in the location of the directory in which
 # the NOAA weather data are stored and returns a dataframe that contains 
 # the data of all of the other data frames one below the other
@@ -41,14 +42,16 @@ collect <- function (fLocation) {
 #       
       for (name in list.files( path = fLocation, pattern ="QCLD*") ){
         print(name)
-        setwd( paste(fLocation,name,sep="/") )
+#        setwd( paste(fLocation,name,sep="/") )
         filename <- substr( name, 6, nchar( name ) )
         #reading in the dataframe
-        sample <- read.csv( file = paste( filename, particulars, sep="" ), header = T )
+        #6/22/2015
+        #Using file.path is a better implementation than using setwd everytime.
+        sample <- read.csv( file = file.path( fLocation, name, paste( filename, particulars, sep="" ) ) , header = T )
         #appending the dataframe to mData
         mData[[length(mData) + 1]] <- sample
         #Returning to the directory where my files are stored
-        setwd(fLocation)
+#        setwd(fLocation)
 #         i <- i+1  #Test case
 #         if (i == 2){break}  #Test case
       }
@@ -58,7 +61,7 @@ collect <- function (fLocation) {
 #   desired order, viz. one below the other.     
        new_dataframe <-  ldply(mData)
        #I don't need this, but I'm placing this here in case 
-       setwd(fLocation)
+#       setwd(fLocation)
        #writing this dataframe to a text file
        write.table(new_dataframe, file = "WeatherData.txt", sep=",", row.names = FALSE )
        print ("Done!")
