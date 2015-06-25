@@ -6,13 +6,14 @@
 # to their respective latiudes and longitudes.
 # 
 
-setwd("Desktop/Project/Files/")
 #
 #orgImprssn is a dataframe that contains the Date, Impressions, Zip Codes, and 
 #Clicks.
 #orgWeathr is a dataframe that contains the daily weather information from NOAA
-orgImprssn  <- read.csv(file ="impression-click_2-year.csv", header = TRUE)
-orgWeathr   <- read.csv(file ="WeatherData.txt", header = TRUE )
+orgImprssn  <- read.csv(file ="/Users/Mathew/Desktop/Project/Files/impression-click_2-year.csv", header = TRUE, 
+                        colClasses = c("Date", "character", "character", "integer",
+                                       "integer") )
+orgWeathr   <- read.csv(file ="/Users/Mathew/Desktop/Project/Files/WeatherData.txt", header = TRUE )
 # 
 # Impressions and weather are copies of the respective files above.
 impressions <- orgImprssn
@@ -34,7 +35,7 @@ temp <- temp[ with ( temp, order( temp$Date ) ), ]
 #Upon examining temp,  I noticed that one zip code had a "(not set)" value.
 #I decided to remove its instances.
 #
-temp <- temp[temp$Date != "(not set)",]
+temp <- temp[temp$ZIP.Postal.Code != "(not set)",]
 
 #
 #Checking if there are any NA values in the city, latitude, longitude, and state.
@@ -54,9 +55,9 @@ str(zipcode)
 #
 #Checking whether there are an NAs in city or zip
 #
-#
-is.na(zip$city)
-is.na( zipcode$zip )
+# #
+# is.na(zip$city)
+# is.na( zipcode$zip )
 
 #
 #finding the number of NAs in zip, city, state, latitude, longitude 
@@ -71,7 +72,7 @@ sum( is.na( zipcode$longitude ) )
 
 #found rows where latitude and longitude were missing
 zipcode[zipcode$latitude == NA]
-zipcode[zipcode$latitude == NA,]
+zipcode[zipcode$longitude == NA,]
 
 #To figure out which rows did not have NAs in them
 zipcode[complete.cases(zipcode[,c(4,5)]),]
@@ -102,6 +103,7 @@ sum( is.na( myzip$state ) )
 #
 impressions <- impressions[ ( impressions$ZIP.Postal.Code != "(not set)" ) , ]
 temp2 <- merge(impressions, myzip, by.x = "ZIP.Postal.Code", by.y = "zip", all = TRUE)
+#ordering the data by Date
 temp2 <- temp2[ with ( temp2, order( temp2$Date ) ), ]
 
 #
@@ -119,9 +121,12 @@ temp2[ (is.na(temp2$city) | (is.na(temp2$latitude)) |  (is.na( temp2$longitude )
 #
 #I noticed that these zip codes: 761906, 34906, and "T0K" had NAs in city, latitude, longitude, and state
 #This was because the zipcode database did not have those zip codes.
+#Since zip codes are in the form of stringa, I have to place the zipzodes that 
+#have NA values in the form of strings.
 #
-temp2 <- temp2[ (temp2$ZIP.Postal.Code != 76190), ]
-temp2 <- temp2[ (temp2$ZIP.Postal.Code != 34906), ]
+#
+temp2 <- temp2[ (temp2$ZIP.Postal.Code != "76190"), ]
+temp2 <- temp2[ (temp2$ZIP.Postal.Code != "34906"), ]
 temp2 <- temp2[ (temp2$ZIP.Postal.Code != ( "T0K" ) ), ]
 
 #
