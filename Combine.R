@@ -7,7 +7,6 @@
 # the NOAA weather data are stored and returns a dataframe that contains 
 # the data of all of the other data frames one below the other
 # 
-# 
 
 #This is the file that I want to download
 particulars = "daily.txt"

@@ -21,7 +21,7 @@ library(plyr)
 globe <- read.csv("/Users/Mathew/Desktop/Project/Files/StationWeatherData.txt",
                   header = T)
 orgImpressions <- read.csv(
-        "/Users/Mathew/Desktop/Project/Files/updatedHarmelinImpressions.csv", 
+        "/Users/Mathew/Desktop/Project/Files/NOSHORTESTDISTANCESHarmelinZipcodesWithMatchingCoordinates.csv", 
         header = T, colClasses = c("character", "Date", "character", "integer", 
                                    "integer", "character", "character", 
                                    "double", "double"))

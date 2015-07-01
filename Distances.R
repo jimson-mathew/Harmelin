@@ -73,3 +73,5 @@ distance <- function(lat1, long1, lat2, long2) {
 
 #print ( distance( 42.07061, -72.62029, 42.37765, -72.50323) / 1000)
 
+
+

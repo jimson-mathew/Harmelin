@@ -46,4 +46,6 @@ write.table(w_daily, "201306daily.txt", sep=",", row.names= FALSE)
 
 str(w_daily)
 
+#6/23/2015:
+
 
