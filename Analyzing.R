@@ -7,7 +7,7 @@
 rm(  fact, x, y, m )
 setwd("Desktop/Project/")
 #This is the file on wich I want to train my predictors, if any.
-temp3 <-readRDS("NONAValuesHarmelinHasTheClosestWeatherStation.rds")
+temp3 <-readRDS("/Users/Mathew/Desktop/Project/Files/NONAValuesHarmelinHasTheClosestWeatherStation.rds")
 
 #Obtaining random values in order to make the training set, development
 #set, and the test set.
@@ -84,7 +84,7 @@ system.time( guess <- lm( formula = Impressions ~ Tmax, data = copy[1:1000000,] 
 
 print("10,000,000 elements")
 system.time( guess <- lm( formula = Impressions ~ Tmax, data = copy[1:10000000,] ) )
-
+######
 
 
 #I noticed that R converted a lot of the columns into facors. This considerably
@@ -526,24 +526,95 @@ for( i in 1:10){
 #I want to find out which Zip Codes have a large number of Impressions.
 #I want to set a threshold by which I can delete other data.
 #
-a <- aggregate( Impressions ~ ZIP.Postal.Code + latitude + longitude, data = deltas, FUN =  sum )
+a <- aggregate( Impressions ~ ZIP.Postal.Code + latitude + longitude + Year, data = deltas, FUN =  sum )
 b <- a[order(-a$Impressions),]
 
 #Using ggmaps, I want to see which zip codes have the most Impressions.
 library(data.table)
-tempDelDF <- setDF( deltas )
+
+b <- setDT( b )
+tempDelDF <- setDF( subset(x = b, Impressions >= 10000 ) )
 library( ggplot2 )
 library( ggmap )
-map <- get_map(location = "usa", zoom = 4)
+map <- get_map(location = "pennsylvania", zoom = 7)
 mapPoints <- ggmap(map) +
-        geom_point(aes(x = longitude, y = latitude, size = log(Impressions)),
-                   data = tempDelDF, alpha = .5)
-mapPoints
+        geom_point(aes(x = longitude, y = latitude, size = (Impressions)),
+                   data = tempDelDF, alpha = 1) 
+mapPoints + ggtitle("Pennsylvania Plot of Impressions")
 
 
+library(lubridate)
+#this will be used later in plottingMonth
+deltas$Year <- year( deltas$Date )
+deltas[,Month:= month( Date )]
+a <- aggregate( Impressions ~ ZIP.Postal.Code + latitude + longitude + Year + Month, data = deltas, FUN =  sum )
+b <- a[order(-a$Impressions),]
+
+b <- setDT(b)
+tempDF2013 <- subset(b, (Impressions >= 10000 & Month <= 5 & Year == 2013) )
+tempDF2014 <- subset(b, (Impressions >= 10000 & Month <= 5 & Year == 2014) )
+tempDF2015 <- subset(b, (Impressions >= 10000 & Month <= 5 & Year == 2015) )
+map <- get_map(location = "pennsylvania", zoom = 7)
+mapPoints <- ggmap(map) +
+        geom_point(aes(x = longitude, y = latitude, size = (Impressions)),
+                   data = tempDF2015, alpha = 1) 
+mapPoints + ggtitle("Pennsylvania Impressions 2015")
+nrow( tempDF2013 )
+nrow( tempDF2014 )
+nrow( tempDF2015 )
 
 
+#I will bring the original daaset back into the workspace, make all of the above changes.
+#Then, I will keep only those observations that have impressions of at least 10,000.
+#After that, I will group again on zip code.
+#I have read temp3, but then placed temp3 into the variable 
+#copy and executed everything from there.
+saveRDS(jill, "CODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.rds")
+saveRDS(deltas,"DELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.rds")
 
 
+#I forgot to write this earlier, but I included the following now :).
+#Now, I will weed out those Zip Codes that have Impressions < 10,000
+#I will compute a and b angain here because I like keeping this side compact
+#After that, I will delete from b Impressions that are < 10,000.
+#Then I will give the zipcodes in b to uniqueZips.
+#
+a <- aggregate( Impressions ~ ZIP.Postal.Code , data = deltas, FUN =  sum )
+b <- a[order(-a$Impressions),]
+b <- setDT(b)
+b <- subset( b, Impressions >= 10000 )
+uniqueZips <- b$ZIP.Postal.Code
 
+#
+#In the following lines of code, I aim to make training, test, and development 
+#tests. In order to do so, I will create a vector that will contain the random 
+#proportion of zipcodes. After that, I will use lapply and then subset the
+#concerned observations from the data table and append them to a list. Finally,
+#I will run it. 
+library(plyr)
+?llply
+
+x <- sample(1:length(uniqueZips), ceiling( 0.4 * ( length(uniqueZips) )) )
+testZip <-uniqueZips[x]
+trainZip <-uniqueZips[-x]
+
+x = sample(1:length(uniqueZips), ceiling( 0.2 * ( length(uniqueZips) ) ))
+devZip  <- testZip[x]
+testZip <- testZip[-x]
+
+#Making the training set
+system.time( train <- subset(deltas, ZIP.Postal.Code %in% trainZip  ) )
+
+#Making the dev set.
+system.time( dev <- subset(deltas, ZIP.Postal.Code %in% devZip  ) )
+
+#Making the test set.
+system.time( test <- subset(deltas, ZIP.Postal.Code %in% testZip  ) )
+
+#
+#Saving the training, deltas, and training sets.
+#
+saveRDS( train, "TRAINING SETDELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.RDS" )
+saveRDS( dev, "DEVELOPMENT SETDELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.RDS" )
+saveRDS( test, "TEST SETDELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.RDS" )
 
