@@ -621,11 +621,14 @@ saveRDS( test, "TEST SETDELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeath
 train <- readRDS("TRAINING SETDELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.RDS")
 demo <- train[1:5,]
 
-#Plotting the correlation of deltas.
+#Plotting the correlation of deltas as a heatmap.
 #http://www.r-bloggers.com/using-r-correlation-heatmap-take-2/
+library(ggplot2)
+library(reshape2)
 qplot(x=Var1, y=Var2, data=melt(cor(train[ c( 11:13, 15:16, 19:20, 24:30 , 49:82 )  ],
                                     use="p")), fill=value, geom="tile") + 
-        scale_fill_gradient2(limits=c(-1, 1))
+        scale_fill_gradient2(limits=c(-1, 1)) + 
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 
 
