@@ -571,11 +571,10 @@ nrow( tempDF2015 )
 # copy and executed everything from there.
 saveRDS(jill, "CODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.rds")
 saveRDS(deltas,"DELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.rds")
-
-
+deltas <- readRDS("/Users/Mathew/Desktop/Project/Files/DELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.rds")
 # I forgot to write this earlier, but I included the following now :).
 # Now, I will weed out those Zip Codes that have Impressions < 10,000
-# I will compute a and b angain here because I like keeping this side compact
+# I will compute a and b again here because I like keeping this side compact
 # After that, I will delete from b Impressions that are < 10,000.
 # Then I will give the zipcodes in b to uniqueZips.
 # 
@@ -663,3 +662,101 @@ library(data.table)
 system.time(train[, Prcnt_Change_Impressions := 
                           (Impressions_Diff/shift(Impressions, n = 1L, type =
                                                           "lag")) * 100 ] )
+
+spend <- read.csv("6643_query_20150729_162039_144571641.csv", header = T,
+                  colClasses = c("character", "character", "character", "double",
+                                 "double", "double"),stringsAsFactors = F, skip = 8 )
+spend <- setDT(spend)
+spend$Date <- as.Date(spend$Date,format( "%Y-%m-%d"))
+saveRDS(spend,"spend.RDS")
+library(zipcode)
+spend$ZIP.Postal.Code <- clean.zipcodes( spend$ZIP.Postal.Code )
+saveRDS(spend,"spend.RDS")
+spend <- readRDS("spend.RDS")
+
+plotting("Tavg_Diff", df = train,"Prcnt_Change_Impressions", 100000)
+
+remove.packages("data.table")         # First remove the current version
+install.packages("data.table")        # Then install the CRAN version
+library(data.table)
+
+spend <- setDT(spend)
+# Removing the last rows that contains the Grand Total.
+spend <- subset(spend, !is.na(Date))
+setorder(spend, ZIP.Postal.Code, Date )
+
+is.data.table(train)
+is.data.table(spend)
+
+# We decided to run a LEFT JOIN on deltas and spend. When we did it, the result 
+# showed a problem. The result of the merge was larger than deltas. Thus, we 
+# decided to aggregate on the Zip Code and the Date. We assumed that for some
+# values of the left Join, there were more than one value of spend. So, this 
+# could be a reason for the extra value.
+# We preserved the commented code in order to make sense of why we added the 
+# aggregate method, otherwise it would be plain Crae to have it there without any
+# explanation
+# 
+# temp <- merge(deltas, spend[, c(1,2,6), with = F], by= c("ZIP.Postal.Code", "Date"),
+#               all.x = T, all.y = F)
+# 
+
+ 
+# Refer to the previous comment why the aggregate the method was done.
+system.time( jack <- aggregate( Media.Cost ~ ZIP.Postal.Code + Date, spend, sum ) )
+
+jack <- setDT( jack )
+
+# Merging the spend Cost with the deltas data set based on Zip Code and Date.
+temp <- merge(deltas, jack, by= c("ZIP.Postal.Code", "Date"),
+              all.x = T)
+
+
+# THE SPLITTING OF deltas INTO THE test, dev, AND train datasets 
+# is COPIED FROM LINES 576 - 618.
+# 
+# 
+# Now, I will weed out those Zip Codes that have Impressions < 10,000
+# I will compute a and b again here because I like keeping this side compact
+# After that, I will delete from b Impressions that are < 10,000.
+# Then I will give the zipcodes in b to uniqueZips.
+# 
+a <- aggregate( Impressions ~ ZIP.Postal.Code , data = deltas, FUN =  sum )
+b <- a[order(-a$Impressions),]
+b <- setDT(b)
+b <- subset( b, Impressions >= 10000 )
+uniqueZips <- b$ZIP.Postal.Code
+
+#
+# In the following lines of code, I aim to make training, test, and development 
+# tests. In order to do so, I will create a vector that will contain the random 
+# proportion of zipcodes. After that, I will use lapply and then subset the
+# concerned observations from the data table and append them to a list. Finally,
+# I will run it. 
+
+x <- sample(1:length(uniqueZips), ceiling( 0.4 * ( length(uniqueZips) )) )
+testZip <-uniqueZips[x]
+trainZip <-uniqueZips[-x]
+
+x = sample(1:length(uniqueZips), ceiling( 0.2 * ( length(uniqueZips) ) ))
+devZip  <- testZip[x]
+testZip <- testZip[-x]
+
+# Making the training set
+system.time( train <- subset(deltas, ZIP.Postal.Code %in% trainZip  ) )
+
+# Making the dev set.
+system.time( dev <- subset(deltas, ZIP.Postal.Code %in% devZip  ) )
+
+# Making the test set.
+system.time( test <- subset(deltas, ZIP.Postal.Code %in% testZip  ) )
+
+#
+# Saving the training, deltas, and training sets.
+#
+saveRDS( train, "TRAINING SET DELTAS_WITH SPEND COST.RDS" )
+saveRDS( dev, "DEVELOPMENT SETDELTAS_WITH SPEND COST.RDS" )
+saveRDS( test, "TEST SETDELTAS_WITH SPEND COST.RDS" )
+
+
+
