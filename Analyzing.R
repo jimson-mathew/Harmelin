@@ -1,5 +1,5 @@
 # Name : Jimson Mathew
-# Date: Since about July 7. Then July 14, 16
+# Date: Since about July 7. Then July 14, 16 - Aug 7 (with some breaks in between.)
 # This file examines the HArmelin data and seeks to make sense of the 
 # same.
 # 
@@ -310,7 +310,17 @@ click.Tavg + geom_point(position = "jitter")   + coord_cartesian( ylim = c(0,250
 # Otherwise, a scatter plot will be generated.
 # 
 plotting <- function ( input, df, imPClick, sizeN ) {
-        library( ggplot2 )
+        if (missing(input))
+                stop("Need to specify y-axis variable for calculations.")
+        else if (missing(df))
+                stop("Need to specify data Frame for calculations.")
+        else if (missing(imPClick))
+                stop("Need to specify x-axis variable for calculations.")
+        else if (missing(sizeN))
+                stop("Need to specify number of elements for calculations.")
+        
+        
+         library( ggplot2 )
         # 
         # Using sample, I will generate a column of row numbers in a randomn 
         # order. The size of this column is based on sizeN.
@@ -710,7 +720,7 @@ jack <- setDT( jack )
 # Merging the spend Cost with the deltas data set based on Zip Code and Date.
 temp <- merge(deltas, jack, by= c("ZIP.Postal.Code", "Date"),
               all.x = T)
-
+deltas <- temp
 
 # THE SPLITTING OF deltas INTO THE test, dev, AND train datasets 
 # is COPIED FROM LINES 576 - 618.
@@ -755,8 +765,465 @@ system.time( test <- subset(deltas, ZIP.Postal.Code %in% testZip  ) )
 # Saving the training, deltas, and training sets.
 #
 saveRDS( train, "TRAINING SET DELTAS_WITH SPEND COST.RDS" )
-saveRDS( dev, "DEVELOPMENT SETDELTAS_WITH SPEND COST.RDS" )
-saveRDS( test, "TEST SETDELTAS_WITH SPEND COST.RDS" )
+saveRDS( dev, "DEVELOPMENT SET DELTAS_WITH SPEND COST.RDS" )
+saveRDS( test, "TEST SET DELTAS_WITH SPEND COST.RDS" )
+
+
+# Examining the relationship between Impressions_Diff and the continous variables
+train.model.Impressions <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                        ResultDir + SnowFall + MI + SH + DR +
+                                        SG + IC +  GR + GS + FU + VA + SA +
+                                        DU + SQ + DS + BC + PR, train)
+summary( train.model.Impressions )
+AIC( train.model.Impressions )
+
+# Examining the relationship between Impressions and the continous variables
+train.model.Impressions <- lm ( Impressions ~ Tavg+  PrecipTotal + 
+                                        ResultDir + SnowFall + MI + SH + DR +
+                                        SG + IC +  GR + GS + FU + VA + SA +
+                                        DU + SQ + DS + BC + PR, train)
+summary( train.model.Impressions )
+AIC( train.model.Impressions )
 
 
 
+# Examining the relationship between Impressions_Diff and the continous variables
+train.model.Impressions <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                        ResultDir + SnowFall + MI + SH + DR +
+                                        SG + IC +  GR + GS + FU + VA + SA +
+                                        DU + SQ + DS + BC + PR + Media.Cost, train)
+summary( train.model.Impressions )
+AIC( train.model.Impressions )
+
+# Examining the relationship between Impressions and the continous variables
+train.model.Impressions <- lm ( Impressions ~ Tavg+  PrecipTotal + 
+                                        ResultDir + SnowFall + MI + SH + DR +
+                                        SG + IC +  GR + GS + FU + VA + SA +
+                                        DU + SQ + DS + BC + PR + Media.Cost, train)
+summary( train.model.Impressions )
+AIC( train.model.Impressions )
+
+
+plotting("Impressions_Diff", train, "Media.Cost" , 1000000)
+
+remove.packages("data.table")
+install.packages("devtools")
+library(devtools)
+install_github("Rdatatable/data.table", build_vignettes = FALSE)
+library(data.table)
+
+# Adding Percentage Change to the training set
+system.time(train[, Prcnt_Change_Impressions := 
+                          (Impressions_Diff/shift(Impressions, n = 1L, type =
+                                                          "lag")) * 100 ] )
+
+remove.packages("data.table")
+install.packages("data.table")
+library(data.table)
+
+system.time ( train <- addDeltas("Media.Cost","MINUS", train) )
+train[, MINUS_Diff := NULL]
+
+plotting("Impressions_Diff", train, "Media.Cost_Diff" , 1000000) + coord_cartesian(xlim = c(-300000, 300000),
+                                                                                   ylim = c(-1000000, 1000000))
+
+plotting("Impressions", train, "Media.Cost" , 100000) + coord_cartesian(xlim = c(0, 500000),
+                                                                        ylim = c(0, 250000) )
+spend <- readRDS("spend.RDS")
+
+plotting("Impressions", spend, "Media.Cost" , 1000000)
+
+
+placespend <-  read.csv("WITH THE RATE 6643_query_20150803_104912_146169498.csv", header = T,
+                        colClasses = c("character", "character", "character", "character", "double",
+                                       "double", "double"),stringsAsFactors = F, skip = 8 )
+
+saveRDS ( placespend, "spend with COST DATA STRUCTURE.RDS" )
+
+placespend <- readRDS("spend with COST DATA STRUCTURE.RDS")
+
+library( data.table )
+placespend <- setDT( placespend )
+CPM <- subset(placespend, Placement.Cost.Structure == "CPM" )
+CPA <- subset(placespend, Placement.Cost.Structure == "CPA" )
+CPC <- subset(placespend, Placement.Cost.Structure == "CPC" )
+FRImp <- subset(placespend, Placement.Cost.Structure == "Flat Rate - Impressions" )
+FRClicks <- subset(placespend, Placement.Cost.Structure == "Flat Rate - Clicks" )
+
+plotting("Impressions", CPM, "Media.Cost", 500000)
+plotting("Impressions", CPA, "Media.Cost", 500000)
+plotting("Impressions", CPC, "Media.Cost", 500000)
+plotting("Impressions", FRImp, "Media.Cost", 500000)
+plotting("Impressions", FRClicks, "Media.Cost", 2171)
+
+
+# Removing the last rows that contains the Grand Total.
+placespend <- subset(placespend, Placement.Cost.Structure != "---")
+
+# Converting strings to factors
+placespend[,Placement.Cost.Structure := as.factor(Placement.Cost.Structure)]
+saveRDS ( placespend, "spend with COST DATA STRUCTURE.RDS" )
+placespend <- readRDS("spend with COST DATA STRUCTURE.RDS")
+
+library(ggplot2)
+nos <- sample( nrow( placespend ), 50000 )
+p1 <- ggplot(placespend[nos,], aes(x=Media.Cost, y=Impressions, colour=Placement.Cost.Structure, 
+                                   group = Placement.Cost.Structure)) +
+        geom_point() +
+        ggtitle("Placement Cost Structure")
+p1 + coord_cartesian(xlim = c(0, 500), ylim = c(0, 25000))
+
+placespend <- CPM
+saveRDS(placespend,"CPM spend with COST DATA STRUCTURE.RDS")
+train <- readRDS( "TRAINING SET DELTAS_WITH SPEND COST.RDS" )
+train[, Media.Cost := NULL ]
+
+# I am converting placespend's Date from String to the type Date
+# Then, I will order placespend based on Zip code and Date.
+# I assume this might make merge a bit faster.
+# 
+placespend <- setDT(placespend)
+placespend[, Date :=  as.Date(Date,format( "%Y-%m-%d") ) ]
+setorder(placespend, ZIP.Postal.Code, Date )
+
+CPM <- subset(placespend, Placement.Cost.Structure == "CPM" )
+placespend <- CPM
+saveRDS(placespend,"CPM spend with COST DATA STRUCTURE.RDS")
+
+train <- readRDS( "TRAINING SET DELTAS_WITH SPEND COST.RDS" )
+train[, Media.Cost := NULL ]
+
+# Testing to see if LEft Join will result in more values.
+# Indeed it did.
+# temp <- merge(train, placespend, by = c("ZIP.Postal.Code", "Date"),
+#                all.x = T )
+# So, now I will run aggregate in order to remove the extra values.
+# 
+
+# Refer to the previous comment why the aggregate the method was done.
+system.time( jack <- aggregate( cbind(Media.Cost, Impressions, Clicks) ~ ZIP.Postal.Code + Date, 
+                                placespend, sum ) )
+
+jack <- setDT( jack )
+saveRDS(jack,"jack.RDS")
+
+jack <- readRDS("jack.RDS")
+
+# Prior to the following code, we ran a model and found that Media Cost 
+# helped our model quite a bit. I will merge the Impressions and clicks onto all
+# of the data, split the data into the different sets, and then make a model.
+# 
+
+# Merging the spend Cost with the deltas data set based on Zip Code and Date.
+deltas <- readRDS("/Users/Mathew/Desktop/Project/Files/DELTASTavgCODESPREADNONAValuesHarmelinHasTheClosestWeatherStation.rds")
+deltas <- setDT(deltas)
+deltas[, c("Impressions_Diff", "Tavg_Diff") := NULL]
+temp <- merge(deltas, jack, by= c("ZIP.Postal.Code", "Date"),
+              all.x = T)
+deltas <- temp
+deltas[, c("Impressions.x", "Clicks.x") := NULL]
+setnames(deltas, "Impressions.y", "Impressions")
+setnames(deltas, "Clicks.y", "Clicks")
+
+# Find Deltas of Temperature, Impressions, and Media Cost.
+system.time( deltas <- addDeltas("Impressions", "Clicks",deltas) )
+system.time( deltas <- addDeltas("Media.Cost", "MINUS",deltas) )
+system.time( deltas <- addDeltas("Tavg", "MINUS",deltas) )
+# I don't need deltas for MINUS
+deltas[,"MINUS_Diff" := NULL]
+str(deltas)
+saveRDS(deltas,"DELTAS WITH CPM.RDS")
+deltas<- readRDS("DELTAS WITH CPM.RDS")
+# THE SPLITTING OF deltas INTO THE test, dev, AND train datasets 
+# is COPIED FROM LINES 576 - 618.
+# 
+# 
+# Now, I will weed out those Zip Codes that have Impressions < 10,000
+# I will compute a and b again here because I like keeping this side compact
+# After that, I will delete from b Impressions that are < 10,000.
+# Then I will give the zipcodes in b to uniqueZips.
+# 
+a <- aggregate( Impressions ~ ZIP.Postal.Code , data = deltas, FUN =  sum )
+b <- a[order(-a$Impressions),]
+b <- setDT(b)
+b <- subset( b, Impressions >= 10000 )
+uniqueZips <- b$ZIP.Postal.Code
+
+#
+# In the following lines of code, I aim to make training, test, and development 
+# tests. In order to do so, I will create a vector that will contain the random 
+# proportion of zipcodes. After that, I will use lapply and then subset the
+# concerned observations from the data table and append them to a list. Finally,
+# I will run it. 
+
+x <- sample(1:length(uniqueZips), ceiling( 0.4 * ( length(uniqueZips) )) )
+testZip <-uniqueZips[x]
+trainZip <-uniqueZips[-x]
+
+x = sample(1:length(uniqueZips), ceiling( 0.2 * ( length(uniqueZips) ) ))
+devZip  <- testZip[x]
+testZip <- testZip[-x]
+
+# Making the training set
+system.time( train <- subset(deltas, ZIP.Postal.Code %in% trainZip  ) )
+
+# Making the dev set.
+system.time( dev <- subset(deltas, ZIP.Postal.Code %in% devZip  ) )
+
+# Making the test set.
+system.time( test <- subset(deltas, ZIP.Postal.Code %in% testZip  ) )
+
+#
+# Saving the training, deltas, and training sets.
+#
+saveRDS( train, "TRAINING SET WITH CPM.RDS" )
+saveRDS( dev, "DEVELOPMENT SET WITH CPM.RDS" )
+saveRDS( test, "TEST SET WITH CPM.RDS" )
+
+
+# Examining the various predictors in addition to
+# a weighted spends.
+train <- readRDS("/Users/Mathew/Desktop/Project/TRAINING SET WITH CPM.RDS")
+train.model.Impressions.MANY <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                        ResultDir + SnowFall + MI + SH + DR +
+                                        SG + IC +  GR + GS + FU + VA + SA +
+                                        DU + SQ + DS + BC + PR + Media.Cost_Diff, train)
+summary( train.model.Impressions.MANY )
+AIC( train.model.Impressions.MANY )
+
+print ( "#************************************************************#")
+
+train.model.Impressions.FEW <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                        ResultDir + SnowFall + Media.Cost_Diff, train)
+summary( train.model.Impressions.FEW )
+AIC( train.model.Impressions.FEW )
+
+############$$$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# Adding weights to Snowfall 
+system.time( train <- addDeltas("SnowFall", "MINUS",train) )
+# I don't need deltas for MINUS
+train[,"MINUS_Diff" := NULL]
+
+
+############$$$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# Checking whether the adding the Snowfall deltas made any difference
+# 
+
+train.model.SNOW.Impressions.MANY <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                        ResultDir + MI + SH + DR +
+                                        SG + IC +  GR + GS + FU + VA + SA +
+                                        DU + SQ + DS + BC + PR + Media.Cost_Diff +
+                                        SnowFall_Diff, train)
+summary( train.model.SNOW.Impressions.MANY )
+AIC( train.model.SNOW.Impressions.MANY )
+
+print ( "#************************************************************#")
+
+train.model.SNOW.Impressions.FEW <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                        ResultDir +  Media.Cost_Diff + SnowFall_Diff, train)
+summary( train.model.SNOW.Impressions.FEW )
+AIC( train.model.SNOW.Impressions.FEW )
+
+library(ggplot2)
+resd <- train.model.Impressions.FEW[["residuals"]]
+
+qplot(resid, geom = "histogram")
+
+h <- ggplot(data=train.model.Impressions.FEW, aes(train.model.Impressions.FEW[["residuals"]])) + geom_density()
+
+h + coord_cartesian(xlim = c(-5000,5000))
+
+dev <- readRDS("DEVELOPMENT SET WITH CPM.RDS")
+
+
+############$$$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+system.time( dev <- addDeltas("SnowFall", "MINUS",dev) )
+# I don't need deltas for MINUS
+dev[,"MINUS_Diff" := NULL]
+
+############################################
+test <- readRDS("TEST SET WITH CPM.RDS")   #
+############################################
+
+############$$$$$$$$$@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+system.time( test <- addDeltas("SnowFall", "MINUS",test) )
+# I don't need deltas for MINUS
+test[,"MINUS_Diff" := NULL]
+
+# NOTE: From lines 1055 - 1221, I am examining the accuracy of my model. I have not
+# made any changes to the data yet.
+
+# Here I examine the residuals of the "delta Snow" model
+# I obtain tthe residuals from the dev and test set, obtain
+# their means and examine which model has the lowest number of 
+# test means.
+predictions <- predict(train.model.SNOW.Impressions.FEW,dev)
+dev_residuals <- dev$Impressions - predictions
+dev_residuals = dev_residuals * dev_residuals
+
+predictions <- predict(train.model.SNOW.Impressions.FEW,test)
+test_residuals <-  test$Impressions - predictions
+test_residuals = test_residuals * test_residuals
+
+
+mean_dev_residuals1 = mean(dev_residuals, na.rm = T)
+mean_test_residuals1 = mean(test_residuals, na.rm = T)
+mean_dev_residuals1
+mean_test_residuals1
+
+# Checking the model of few predictors.
+# I obtain tthe residuals from the dev and test set, obtain
+# their means and examine which model has the lowest number of 
+# test means.
+predictions <- predict(train.model.Impressions.FEW,dev)
+dev_residuals <- dev$Impressions - predictions
+dev_residuals = dev_residuals * dev_residuals
+
+predictions <- predict(train.model.Impressions.FEW,test)
+test_residuals <-  test$Impressions - predictions
+test_residuals = test_residuals * test_residuals
+
+
+mean_dev_residuals2 = mean(dev_residuals, na.rm = T)
+mean_test_residuals2 = mean(test_residuals, na.rm = T)
+mean_dev_residuals2
+mean_test_residuals2
+
+
+# I will be checking the model with many perdictors but NO weighted snowFall.
+# I obtain tthe residuals from the dev and test set, obtain
+# their means and examine which model has the lowest number of 
+# test means.
+
+predictions <- predict(train.model.Impressions.MANY,dev)
+dev_residuals <- dev$Impressions - predictions
+dev_residuals = dev_residuals * dev_residuals
+
+predictions <- predict(train.model.Impressions.MANY,test)
+test_residuals <-  test$Impressions - predictions
+test_residuals = test_residuals * test_residuals
+
+
+mean_dev_residuals2 = mean(dev_residuals, na.rm = T)
+mean_test_residuals2 = mean(test_residuals, na.rm = T)
+mean_dev_residuals2
+mean_test_residuals2
+
+library(stats)
+?prcomp()
+
+deltas <- readRDS("DELTAS WITH CPM.RDS")
+
+# Please ignore the SNOW in the name.
+# I just needed to use a variable, so I chose it.
+train.model.SNOW.Impressions.FEW <- lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                                                 ResultDir +  Media.Cost_Diff + SnowFall, train)
+summary( train.model.SNOW.Impressions.FEW )
+AIC( train.model.SNOW.Impressions.FEW )
+
+
+# I want to plot the actual and predicted values.
+nos <- sample( nrow( test ), 100000 )
+
+# Plotting a graph of Actial Impressions and Date, then Predicted impressions
+# over it.
+
+# For this, I predict the model over the test set, obtain the predicted Impressionns, and
+# then overlap it with the existing graph.
+predictions <- predict(train.model.SNOW.Impressions.FEW,test[nos,])
+predict_team <- data.table( "Impressions_Diff" = predictions, "Date" = test[nos,]$Date)
+
+
+ggplot( test[nos,], aes_string( y = "Impressions_Diff", x = "Date" ) ) + geom_point(aes(colour = "Actual")) +
+        geom_point(data = predict_team,aes(x = Date, y=Impressions_Diff, colour = "Predicted"),  alpha = 1 ) +
+        scale_colour_manual(name="Legend",
+                           values=c("black", "red")) +
+        xlab("Date") + ylab("Weighted Impressions") + 
+        coord_cartesian(ylim = c(-50000,50000) ) +
+        ggtitle("Actual and Predicted Weighted Impressions between 2013 and 2015 for 100,000 elements.")
+
+
+# I want to plot the actual Weighted Impresssion Data.
+ggplot( test[nos,], aes_string( y = "Impressions_Diff", x = "Date" ) ) + geom_point(aes())  +
+        xlab("Date") + ylab("Weighted Impressions") +
+        coord_cartesian(ylim = c(-50000,50000) ) +
+        ggtitle("Actual Weighted Impressions between 2013 and 2015 for 100,000 Elements")
+# plot the residuals difference as well. 
+
+
+# To make residual plots of train, test and dev sets.
+# 
+inference_train = lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                              ResultDir +  Media.Cost_Diff + SnowFall, train[nos,])
+inference_dev  = lm( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                             ResultDir +  Media.Cost_Diff + SnowFall, dev[nos,] )
+inference_test = lm ( Impressions_Diff ~ Tavg_Diff +  PrecipTotal + 
+                              ResultDir +  Media.Cost_Diff + SnowFall, test[nos,])
+
+
+
+h <- ggplot(data=inference_train, aes(inference_train[["residuals"]],
+                                      colour="r")) + 
+        geom_histogram(binwidth =10, alpha = 0.4) +
+        coord_cartesian(xlim = c(-1000,1000))  +
+        geom_histogram(data= inference_test, aes(inference_test[["residuals"]],
+                                                 fill="blue", colour="b"),
+                       fill="blue",
+                       binwidth = 10,
+                       alpha = 0.001) +
+        
+        geom_histogram(data= inference_dev, aes(inference_dev[["residuals"]],
+                                                fill="green", colour="g"),fill= "green",
+                       alpha = 0.2,binwidth = 10) +
+        scale_colour_manual(name="Legend", values=c("r" = "red", "b"="blue", "g"="green"),
+                            labels=c("b"="Test", "r"="Train", "g" = "Development")) +
+        xlab("Residuals") + ylab("Count") +
+        ggtitle("Histogram showing comparison of residuals for the training, development, and test set")
+h
+
+# I was thinking of just plotting the impact of just SnowFall on Impressions.
+# I just adapted the following code from the Graph whose title was,
+# "Actual and Predicted Weighted Impressions between 2013 and 2015 for 100,000 elements"
+# in lines 1131-1141
+inference_train1 = lm ( Impressions_Diff ~ SnowFall, train[nos,])
+summary(inference_train1)
+
+nos <- sample( nrow( test ), 100000 )
+predictions <- predict(inference_train1,test[nos,])
+predict_team <- data.table( "Impressions_Diff" = predictions, "Date" = test[nos,]$Date)
+
+ggplot( test[nos,], aes_string( y = "Impressions_Diff", x = "Date" ) ) + geom_point(aes(colour = "Actual")) +
+        geom_point(data = predict_team,aes(x = Date, y=Impressions_Diff, colour = "Predicted"),  alpha = 1 ) +
+        scale_colour_manual(name="Legend",
+                            values=c("black", "red")) +
+        xlab("Date") + ylab("Weighted Impressions") + 
+        coord_cartesian(ylim = c(-5000,5000) ) +
+        ggtitle("Actual and Predicted Weighted Impressions between 2013 and 2015 for 100,000 elements.")
+
+# I was thinking of just plotting the impact of just Precipitation on Impressions.
+# I just adapted the following code from the Graph whose title was,
+# "Actual and Predicted Weighted Impressions between 2013 and 2015 for 100,000 elements"
+# in lines 1131-1141
+
+inference_train2 = lm ( Impressions_Diff ~ PrecipTotal, train[nos,])
+summary(inference_train2)
+
+nos <- sample( nrow( test ), 100000 )
+predictions <- predict(inference_train2,test[nos,])
+predict_team <- data.table( "Impressions_Diff" = predictions, "Date" = test[nos,]$Date)
+
+ggplot( test[nos,], aes_string( y = "Impressions_Diff", x = "Date" ) ) + geom_point(aes(colour = "Actual")) +
+        geom_point(data = predict_team,aes(x = Date, y=Impressions_Diff, colour = "Predicted"),  alpha = 1 ) +
+        scale_colour_manual(name="Legend",
+                            values=c("black", "red")) +
+        xlab("Date") + ylab("Weighted Impressions") + 
+        coord_cartesian(ylim = c(-5000,5000) ) +
+        ggtitle("Actual and Predicted Weighted Impressions between 2013 and 2015 for 100,000 elements.")
+
+
+
+
+
+
+                                                             
+                                                               
